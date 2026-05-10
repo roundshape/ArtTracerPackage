@@ -1,0 +1,24 @@
+# macOS
+.DS_Store
+._*
+.AppleDouble
+.LSOverride
+.Spotlight-V100
+.Trashes
+.fseventsd
+
+# Build output
+dist/
+*.dmg
+*.dSYM/
+
+# Editors
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Backup / temporary
+*.bak
+*.orig
+*.rej
