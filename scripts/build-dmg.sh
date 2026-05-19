@@ -12,6 +12,10 @@ set -euo pipefail
 #   AIP_PATH  ArtTracer.aip       (default: ../output/mac/release/ArtTracer.aip)
 #   APP_PATH  ArtTracerHelper.app (default: ../ArtTracer/Helper/build/Release/ArtTracerHelper.app)
 #
+# NOTARIZE=1 を指定すると dmg の署名・公証・staple まで行う：
+#   SIGN_ID         署名 ID         (default: Developer ID Application: Motoi Kasuya (92U95PHRRW))
+#   NOTARY_PROFILE  notarytool プロファイル (default: notary-profile)
+#
 # 出力: dist/ArtTracerPackage-<VERSION>.dmg
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
@@ -59,5 +63,21 @@ hdiutil create \
     -format UDZO \
     "$DIST_DIR/$DMG_NAME" \
     >/dev/null
+
+if [[ "${NOTARIZE:-}" == "1" ]]; then
+    SIGN_ID="${SIGN_ID:-Developer ID Application: Motoi Kasuya (92U95PHRRW)}"
+    NOTARY_PROFILE="${NOTARY_PROFILE:-notary-profile}"
+
+    echo "==> Signing $DMG_NAME"
+    codesign --force --sign "$SIGN_ID" --timestamp "$DIST_DIR/$DMG_NAME"
+
+    echo "==> Submitting for notarization (this may take a few minutes)"
+    xcrun notarytool submit "$DIST_DIR/$DMG_NAME" \
+        --keychain-profile "$NOTARY_PROFILE" \
+        --wait
+
+    echo "==> Stapling notarization ticket"
+    xcrun stapler staple "$DIST_DIR/$DMG_NAME"
+fi
 
 echo "==> Done: $DIST_DIR/$DMG_NAME"
