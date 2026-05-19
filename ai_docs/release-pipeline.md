@@ -86,7 +86,7 @@ Helper のみ追加：
 #### 成果物
 
 - `../output/mac/release/ArtTracer.aip`
-- `../ArtTracer/Helper/build/Release/ArtTracerHelper.app`
+- `../ArtTracer/Helper/build.noindex/Release/ArtTracerHelper.app`
   - `Contents/PlugIns/ArtTracerThumbnail.appex` を埋め込み済み
 
 ### 2.3 `scripts/build-dmg.sh`
@@ -118,7 +118,7 @@ NOTARIZE=1 scripts/build-dmg.sh [VERSION]
 | 変数 | 既定値 | 説明 |
 |---|---|---|
 | `AIP_PATH` | `../output/mac/release/ArtTracer.aip` | dmg に入れる .aip のパス |
-| `APP_PATH` | `../ArtTracer/Helper/build/Release/ArtTracerHelper.app` | dmg に入れる .app のパス |
+| `APP_PATH` | `../ArtTracer/Helper/build.noindex/Release/ArtTracerHelper.app` | dmg に入れる .app のパス |
 | `NOTARIZE` | （未設定） | `1` を指定すると署名・公証・staple を実行 |
 | `SIGN_ID` | `Developer ID Application: Motoi Kasuya (92U95PHRRW)` | dmg の署名 ID（`NOTARIZE=1` 時のみ使用） |
 | `NOTARY_PROFILE` | `notary-profile` | notarytool キーチェーンプロファイル名（同上） |
@@ -313,7 +313,7 @@ CODE_SIGN_INJECT_BASE_ENTITLEMENTS=NO
 
 ```bash
 codesign -d --entitlements - --xml \
-    ../ArtTracer/Helper/build/Release/ArtTracerHelper.app
+    ../ArtTracer/Helper/build.noindex/Release/ArtTracerHelper.app
 ```
 
 `com.apple.security.get-task-allow` のキーが含まれていなければ OK。

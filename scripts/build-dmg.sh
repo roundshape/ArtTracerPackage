@@ -10,7 +10,7 @@ set -euo pipefail
 #
 # 環境変数で .aip / .app の場所を上書き可能：
 #   AIP_PATH  ArtTracer.aip       (default: ../output/mac/release/ArtTracer.aip)
-#   APP_PATH  ArtTracerHelper.app (default: ../ArtTracer/Helper/build/Release/ArtTracerHelper.app)
+#   APP_PATH  ArtTracerHelper.app (default: ../ArtTracer/Helper/build.noindex/Release/ArtTracerHelper.app)
 #
 # NOTARIZE=1 を指定すると dmg の署名・公証・staple まで行う：
 #   SIGN_ID         署名 ID         (default: Developer ID Application: Motoi Kasuya (92U95PHRRW))
@@ -24,7 +24,7 @@ cd "$ROOT"
 VERSION="${1:-0.0.0}"
 
 AIP_PATH="${AIP_PATH:-../output/mac/release/ArtTracer.aip}"
-APP_PATH="${APP_PATH:-../ArtTracer/Helper/build/Release/ArtTracerHelper.app}"
+APP_PATH="${APP_PATH:-../ArtTracer/Helper/build.noindex/Release/ArtTracerHelper.app}"
 
 if [[ ! -e "$AIP_PATH" ]]; then
     echo "Error: ArtTracer.aip not found at: $AIP_PATH" >&2

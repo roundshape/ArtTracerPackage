@@ -20,7 +20,7 @@ set -euo pipefail
 #
 # 出力:
 #   ../output/mac/release/ArtTracer.aip
-#   ../ArtTracer/Helper/build/Release/ArtTracerHelper.app
+#   ../ArtTracer/Helper/build.noindex/Release/ArtTracerHelper.app
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
@@ -42,7 +42,7 @@ if [[ ! -e "$HELPER_PROJECT" ]]; then
 fi
 
 AIP_OUTPUT_DIR="../output/mac/release"
-HELPER_OUTPUT_DIR="../ArtTracer/Helper/build/Release"
+HELPER_OUTPUT_DIR="../ArtTracer/Helper/build.noindex/Release"
 
 echo "==> Cleaning $AIP_OUTPUT_DIR"
 rm -rf "$AIP_OUTPUT_DIR"
