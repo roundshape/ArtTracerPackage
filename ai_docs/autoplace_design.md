@@ -6,11 +6,15 @@
 > クリック位置を grid 起点として、選択中の closed path 群に単一マスター
 > grid で artx を配置する方式。
 >
+> **⌘ 押下と組み合わせると** スケール配置モード (⌘+描画) になり、ダイアログで
+> 倍率 (0.10〜2.00 倍) を指定して artx を uniform にスケールしながらクリック
+> 起点配置する (§3.8)。1.00 倍は無修飾と完全一致。
+>
 > 過去には **領域分解 + 各領域 grid** と **Free Packing (greedy bottom-left fill)** も
 > 実装されていたが、現在は dead code として残置中。理由は本ドキュメント §9
 > および `memory/arttracer_autoplace_progress.md`。
 
-最終更新: 2026-05-27
+最終更新: 2026-05-30
 
 ---
 
@@ -24,6 +28,12 @@
 |---|---|---|
 | **closed path が 1 つ以上選択** | **クリック起点モード** | ツール起動 → ゴースト grid 追従描画 → クリック位置を grid 起点として配置 |
 | **選択が空 or closed path 無し** | **従来のクリックツールモード** | クリック位置を 1 個の artx の基準点として配置 |
+
+**修飾キー** (closed path 選択時のみ):
+- **⌘ + 描画ボタン** → **スケール配置モード** (§3.8)。倍率入力ダイアログで artx を
+  uniform スケールし、クリック起点モードに入る。1.00 倍は無修飾と一致。
+- **⌥ + 配置クリック** (ツール起動後) → CSV 流し込みをスキップ (テンプレ内の
+  `{key}` をそのまま残して描画)。
 
 本ドキュメントは前者(クリック起点モード)を中心に説明する。
 
@@ -63,7 +73,14 @@ Source/
 ├── UI/
 │   ├── ATPanelUI.{h,mm}                 パネル UI Obj-C ヘルパ
 │   ├── ATSettingsDialog.{h,mm}          設定ダイアログ
-│   └── PanelController.{h,mm}           ボタンハンドラ 10 個 (Phase 4)
+│   ├── ATConfirmDialog.{h,mm}           汎用の横並びカスタム確認ダイアログ
+│   │                                    (artx 保存の 3 ボタン用、可変ボタン数 +
+│   │                                    矢印キー/Enter/Esc 対応)
+│   ├── ATScaleDialog.{h,mm}             ⌘+描画 のスケール入力ダイアログ
+│   │                                    (slider / stepper / 数値 3 者同期 +
+│   │                                    <preview> サムネ + ライブ計算)
+│   └── PanelController.{h,mm}           ボタンハンドラ + 描画先レイヤ popup
+│                                        (kAILayer*Notifier 連動)
 ├── Services/                            ビジネスロジック (Phase 3)
 │   ├── SettingsStore.{h,mm}             NSUserDefaults R/W
 │   ├── LayerService.{h,cpp}             レイヤ切替
@@ -126,6 +143,20 @@ void RenderClickOriginGridOverlay(...);
 
 // 診断用: クリック位置を青い ✕ マーカーで描画。
 void RenderClickMarker(const AIRealPoint& pos);
+
+// === スケール配置プレビュー用 (§3.8) ===
+
+// 選択 closed path 群を flatten し、合成 bounding box を返す (AI Y-up)。
+bool ComputeCombinedPathsBounds(const std::vector<AIArtHandle>& paths,
+    AIRealRect& outBounds);
+
+// scale 倍した cellW/cellH/footprint で bbox を充填したとき、footprint 通過で
+// 採用される cell 数を返す (ダイアログのライブ P 表示用)。footprint は原寸を
+// 渡す — 内部で scale 倍する。
+int CountPlaceableScaled(const std::vector<AIArtHandle>& paths,
+    const AIRealRect& bbox,
+    double cellW, double cellH, const Clipper2Lib::PathsD& footprint,
+    int anchor, double padding, double scale);
 
 // === JS リファレンス用 (現在使われていない、§9 参照) ===
 void ComputeGridCells(...);                    // 初版 grid
@@ -351,6 +382,94 @@ bool FootprintInsideRegion(region, footprint, baseH, baseV)
 footprint は事前に `artx::ComputeFootprint` で算出してキャッシュ済み。
 artx ローカル座標 (Y-down) で持ち、各 cell 位置で AI 座標に逐次変換する。
 
+### 3.8 スケール配置モード (⌘+描画)
+
+**位置付け**: クリック起点モードに **uniform scale を 1 個差し込んだ拡張**。
+無修飾の描画はそのまま、⌘ 押下時のみ「倍率を指定するダイアログ」を挟む。
+**1.00 倍 = ⌘無しと完全一致** (scale 経路を 1 か所差すだけで、起点もグリッドの
+張り方も既存機構を流用)。
+
+#### 全体フロー
+
+```
+⌘+描画 (closed path 選択中)
+  ↓
+PanelController::onDrawButtonClicked
+  ├ NSEventModifierFlagCommand 検出
+  ├ extractArtxGridParams で cellW/cellH/footprint (原寸)
+  ├ ComputeCombinedPathsBounds で領域 bbox
+  └ ATScaleDialog をモーダル表示
+      ├ slider / stepper(0.01刻み) / 数値(倍, 小数2桁) 3 者同期
+      ├ artx の <preview> base64 PNG をサムネ表示 (128×128)
+      └ 値変更で provider block を呼び:
+          scale = ユーザ指定
+          P    = CountPlaceableScaled(scale 倍した cell/footprint)
+          mm   = cellW/cellH × scale × 25.4/72
+        の 3 つをライブ更新
+  ↓ (OK で確定、Cancel で abort)
+AutoPlaceService::beginClickOriginMode(paths, tmpl, scale)
+  ├ extractArtxGridParams で再抽出
+  └ ghostCellW_ = cellW * scale, ghostCellH_ = cellH * scale,
+    ghostFootprint_ = footprint * scale (全頂点の x,y を scale 倍)
+  ↓
+ツール起動 + ゴースト (スケール済みセルで描画される)
+  ↓
+ユーザがクリック
+  ↓
+AutoPlaceService::confirmAtCursor
+  └ for each cell:
+      RenderService::renderTemplate(tmpl, csv, settings, basePoint,
+                                    csvLoaded, placeScale_)
+        ├ 一時グループに wrap (groupOnRender OFF でも scale!=1.0 なら作成)
+        ├ artx::Render でグループ内に描画 (原寸)
+        └ sAITransformArt->TransformArt(group, scaleMatrix, scale,
+              kTransformObjects | kTransformChildren | kScaleLines)
+            // scaleMatrix: basePoint (= セル左上 = artx の (0,0)) を中心に
+            //   uniform scale
+            //   a=d=scale, b=c=0,
+            //   tx=basePoint.h*(1-scale), ty=basePoint.v*(1-scale)
+```
+
+#### ダイアログ `ATScaleDialog`
+
+3 つのコントロールを `syncTo:` で **双方向同期** (どれを動かしても残り 2 つ +
+セルサイズ・配置可能数が連動):
+- **スライダー** (0.10〜2.00、continuous): 粗調整
+- **ステッパー** (0.01 刻み、wrap なし): 微調整
+- **数値フィールド** (倍、小数 2 桁、NSNumberFormatter で範囲外クランプ)
+
+レイアウト:
+```
+スケール: [────────slider────────] [↕][1.00] 倍
+┌─────────┐
+│         │  セルサイズ: W.W mm × H.H mm (横×縦)
+│ 128×128 │  配置可能数: P 個
+│ preview │
+└─────────┘                       [キャンセル] [OK]
+```
+
+サムネイル取得:
+- artx の `<preview><data>` から base64 PNG 文字列を取り出し、
+- Cocoa の `[NSData initWithBase64EncodedString:options:]` で直接デコード
+- `[NSImage initWithData:]` → NSImageView (`NSImageScaleProportionallyUpOrDown`)
+- 追加のラスタライズや C++ 側 base64 デコーダは不要 (`<preview>` は
+  ArtraceWriter が書き出し時に 1024px 長辺の PNG を埋め込む既存仕様)
+
+#### スケール式の設計
+
+ダイアログの **初期値 1.00 倍 = ⌘無しと一致** を保証するため、scale は
+「bbox 充填率」ではなく **純粋な倍率** として扱う。`ghostCellW_/H_` が
+`cellW * scale` / `cellH * scale` になり、ゴーストと配置が縮小/拡大セルで動く。
+配置時の grid 起点 (カーソル)・grid の張り方 (`EnumerateClickOriginGridCells`)・
+footprint 間引きはクリック起点モードと完全に同じロジックを通る。
+
+#### 設計上の経緯
+
+入力は当初 N×M 個数指定だったが、**整数連動の往復ドリフト問題** (片方を
+編集するともう片方が丸めで暴れ、戻すと元の値がズレる) を避けるため、scale
+直接指定 (連続値、1 自由度) に整理した。N×M は実質スケールと等価で、整数の
+不安定さを持ち込む必要がない、という結論。
+
 ---
 
 ## 4. 座標系の整理
@@ -405,14 +524,21 @@ struct ArtTracerSettings {
     // 領域分解方向 (現在は dead code、UI には残っている)
     bool   regionDecomposeYPriority = true;
 
-    // 描画先レイヤ指定 (現役、両経路に効く)
-    bool        drawLayerEnabled = false;
-    std::string drawLayerName    = "ArtTracer";
+    // (描画先レイヤ指定は 設定ダイアログから撤去。パネルの popup に移管 — §6)
 
     // grid 内配置パラメータ
     GridAnchor gridAnchor  = GridAnchor::TopLeft;
     double     gridMargin  = 0.0;   // (現状 click-origin モードでは未使用)
     double     gridPadding = 0.0;   // (click-origin モードで効く)
+
+    // artx グループ化 + Dictionary 属性 (Phase 5)
+    bool        groupOnRender = false;
+    // ON のとき各 artx を 1 個の kGroupArt に wrap し、Dictionary に
+    // ArtTracer.* 属性 (version / placedAt / artxPath、CSV 時は + id /
+    // csvPath / fields.<header>) を書き込む。グループ Art name = CSV 1
+    // 列目の値 (= ID)。CSV 未ロード時は version / placedAt / artxPath のみ。
+    // scale != 1.0 (⌘+描画) のときは設定 OFF でもグループは作られる
+    // (スケール変換の器として必要、§3.8)。
 };
 
 enum class GridAnchor {
@@ -443,13 +569,13 @@ enum class GridAnchor {
 │   ◉ Y 優先 (縦並び、列揃え)                │
 │   ○ X 優先 (横並び、行揃え)                │
 │                                             │
-│ ☐ 描画先レイヤを指定する                   │
-│     レイヤ名: [ArtTracer________________]  │
-│                                             │
 │ グリッド内配置:                            │
 │   アンカー: [Top-Left (左上)         ▼]    │
 │   Margin:   [     0] pt  (現状 dead)       │
 │   Padding:  [     0] pt                    │
+│                                             │
+│ ☐ artx をグループ化する                    │
+│   (グループ名 = CSV 1 列目の ID)            │
 │                                             │
 │              [キャンセル]  [OK]             │
 └────────────────────────────────────────────┘
@@ -459,30 +585,98 @@ enum class GridAnchor {
 の旧領域分解モード用。**JS リファレンス方針** ([[file-splitting-ai-optimized]]) に
 従い UI は残置している。
 
+**描画先レイヤ指定はこのダイアログから撤去**。パネル上の popup (§6) に移管した。
+
 ---
 
-## 6. レイヤ指定機能
+## 6. 描画先レイヤ指定 (パネル popup)
 
-`artx::LayerService::applyDrawLayer(settings)` / `restoreDrawLayer(prev)`:
+設定ダイアログから撤去し、**パネル上の popup** に移管。`PanelController` 内の
+`selectedLayer_` (AILayerHandle) が現在の選択を保持する。**永続化なし** —
+Illustrator のセッション間でリセット (起動時は「指定しない」)。
 
-設定 `drawLayerEnabled` が ON のとき:
+### 6.1 popup 構成
 
-1. 現在のアクティブレイヤを保存
-2. 指定レイヤ名を `GetLayerByTitle` で検索
-3. 見つからない → `InsertLayer(NULL, kPlaceAboveAll, &target)` で**最前面に新規作成**して命名
-4. `SetCurrentLayer(target)` でそのレイヤをアクティブにする
-5. 戻り値 = 元のアクティブレイヤ(`restoreDrawLayer` で復元する)
+```
+パネル: artx 行の下
+描画先: [指定しない                ▼]
+  ├ 指定しない               (default, tag = -1)
+  ├ ──── (separator)
+  ├ <レイヤ 1>               (tag = GetNthLayer index)
+  ├ <レイヤ 2>
+  ├ ... (現在ドキュメントの全レイヤ、レイヤパネル順)
+  ├ ──── (separator)
+  └ ＋ 新規レイヤを作成…     (tag = -2)
+```
 
-3 つの描画経路に組み込み済み:
+NSMenuItem の `tag` で識別 (separator の default tag = 0 とレイヤ index = 0
+の衝突を避けるため、選択復元は index を直接トラックして `selectItemAtIndex:`)。
 
-| 経路 | 切替単位 |
+### 6.2 「＋ 新規レイヤを作成…」のフロー
+
+1. NSAlert + accessoryView (NSTextField) で名前入力
+2. default 名 = 既存レイヤ名から `^ArtTracer-(\d+)$` の **最大 N + 1** を抽出
+   (= `ArtTracer-1`, `ArtTracer-2`, ...)
+3. OK → 作成前の current layer を保存 → `sAILayer->InsertLayer(NULL,
+   kPlaceAboveAll, &newLayer)` → `SetLayerTitle` → **作成前の current を復元**
+   (InsertLayer の副作用で current が新レイヤになるが、ユーザの作業レイヤを
+   勝手に切り替えないため)
+4. `selectedLayer_ = newLayer` → popup を rebuild (新レイヤを選択状態に)
+
+popup の action は Cocoa 経由で直接呼ばれるため、`onLayerPopupSelected` の冒頭で
+`AppContext` を張る (これがないと SDK suite 呼び出しでクラッシュ)。menu の
+mutate 中の AppKit title 同期が壊れる事象を避けるため、rebuild は
+`dispatch_async(dispatch_get_main_queue(), ^{ ... })` で 1 runloop 後に defer。
+
+### 6.3 popup の rebuild トリガ
+
+`Plugin::Notify` が以下 3 通知を受信して `PanelController::onLayerOrDocumentChanged`
+を呼び、popup を全件再構築:
+
+| Notifier | タイミング |
 |---|---|
-| `AutoPlaceService::confirmAtCursor` | クリック確定時に 1 回切替・復元 (ループ外側) |
-| `ToolMouseDown` (従来クリックツール) | クリック 1 回毎に切替・復元 |
-| `PlaceArtxAt` (JS bridge) | 1 回切替・復元 |
+| `kAILayerSetNotifier` | レイヤの追加 / 削除 / 並び替え |
+| `kAILayerOptionsNotifier` | レイヤ名 / 色 / visible 等の変更 |
+| `kAIDocumentChangedNotifier` | アクティブドキュメント切替 |
 
-`AutoPlaceService::autoPlaceInClosedPaths` (dead code) でも同様に外側 1 回切替の
-最適化を維持。
+`kAICurrentLayerNotifier` は意図的に**購読していない** — ArtTracer の popup
+選択と Illustrator の current layer は独立した概念にしたいため (current
+追従にすると、新規作成や `SetCurrentLayer` で popup が勝手に動いてしまう)。
+
+rebuild 時に `selectedLayer_` が現在のレイヤ列に存在しなければ NULL に戻す
+(= 削除されたレイヤを掴んでいた場合の自動復帰)。
+
+### 6.4 LayerService API
+
+```cpp
+// target を current にする。戻り値は切替前の current レイヤ。
+// target == NULL / 既に current の場合は NULL を返し、何もしない。
+static AILayerHandle applyLayer(AILayerHandle target);
+
+// applyLayer の戻り値を渡して current を復元。NULL なら no-op。
+static void          restoreLayer(AILayerHandle prev);
+```
+
+(旧 `applyDrawLayer(settings)` / `restoreDrawLayer(prev)` から
+リネーム + 引数変更。settings ではなく AILayerHandle を直接渡す。)
+
+### 6.5 各描画経路への組み込み
+
+| 経路 | 切替単位 | 渡す handle |
+|---|---|---|
+| `AutoPlaceService::confirmAtCursor` | クリック確定時に 1 回切替・復元 (ループ外側) | 引数 `targetLayer` |
+| `ToolMouseDown` (従来クリックツール) | クリック 1 回毎に切替・復元 | `fPanelCtrl.selectedLayer()` |
+| `PlaceArtxAt` (JS bridge) | 1 回切替・復元 | `fPanelCtrl.selectedLayer()` |
+
+`AutoPlaceService::autoPlaceInClosedPaths` (dead code) でも同じ
+`AILayerHandle` 引数を取る形に統一。
+
+### 6.6 自動配置との相性
+
+レイヤ変更 (`SetCurrentLayer`) は **art の選択を一切変えない** (SDK の概念分離:
+current layer / レイヤ選択 / アート選択は 3 軸独立)。なので「closed path 群を
+選択 → popup で新規レイヤ作成 → 描画」のワークフローで、選択が維持されたまま
+配置先だけ切り替わる。手作業で再選択する必要がない。
 
 ---
 
@@ -655,13 +849,17 @@ ArtTracer は **single-piece-type nesting**(1 種類のピース)に特化し、
 - アンカー 9 種(クリック位置をセルのどこに合わせるか)
 - Padding(セル間隔)
 - CSV 駆動で N 個の artx を 1 操作で配置
-- 描画先レイヤ統一(整理しやすい)
+- **artx の uniform スケール配置 (⌘+描画、0.10〜2.00 倍、§3.8)**
+  — 線幅・テキストも同率スケール
+- **artx グループ化 + Dictionary 属性**(設定 `groupOnRender`、§5.1)
+- 描画先レイヤ統一(パネル popup、§6)
 - Esc キーで中止
 
 ### 何ができないか / 制約
 
 - **Margin (grid 外周余白) は未対応**(クリック起点なので意味が薄い)
 - **artx の回転なし**(常に upright)
+- **non-uniform スケール (歪み) なし**(等比のみ。uniform スケールは ⌘+描画)
 - **多 artx 混在配置なし**(1 種類のテンプレ artx のみ)
 - **斜め (rotated) grid なし**(常に AI 座標の X / Y 軸並行)
 - **対称性は保証されない**(ユーザのクリック位置依存)
@@ -681,4 +879,4 @@ ArtTracer は **single-piece-type nesting**(1 種類のピース)に特化し、
 
 ---
 
-最終更新: 2026-05-27
+最終更新: 2026-05-30
