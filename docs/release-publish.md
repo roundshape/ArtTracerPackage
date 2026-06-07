@@ -196,6 +196,18 @@ gh auth status                 # Active: true が個人側に戻ったか確認
 
 ## 5. 一括コピペ用テンプレート（参考）
 
+> **自動化スクリプトあり**: コミット → タグ → push → アカウント切替 → リリース作成 → 復帰
+> までは `scripts/gh-release.sh` に 1 本化してある。dmg をビルド済みなら次の 1 コマンドで済む:
+> ```bash
+> cd /path/to/ArtTracerPackage
+> scripts/release.sh 0.0.6                                   # ビルド + 公証 (先に必要)
+> scripts/gh-release.sh 0.0.6 "v0.0.6 リリース準備" /tmp/release-notes-0.0.6.md
+> ```
+> 第 3 引数 (ノートファイル) を省くと `--generate-notes` で自動生成。`--skip-commit` で
+> コミット段階をスキップ (手動コミット済みのとき)。元 gh アカウントへは終了時に自動復帰
+> するので、roundshape 常用 Mac でも個人常用 Mac でもそのまま動く。
+> 以下は同じ流れを手動で行う場合の参考。
+
 `VERSION` を書き換えて使う：
 
 ```bash
