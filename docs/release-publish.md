@@ -139,6 +139,12 @@ gh auth switch -u roundshape   # roundshape に切り替え
 
 リリースは `roundshape/ArtTracerPackage` 配下なので、roundshape として操作する必要がある。
 
+> **マシン別の運用差に注意**
+> このステップ (3.6) と「戻す」ステップ (3.9) は、**個人アカウントが普段使いの Mac** を前提にしている。
+> - **roundshape が通常状態の Mac** (常に roundshape でログイン運用しているマシン) では、`switch` も「戻す」(3.9) も**不要**。`gh auth login` で roundshape を一度通しておけば、そのまま 3.7 へ進める。
+> - **個人アカウントが普段使いの Mac** では、本ステップで roundshape に切り替え、公開後に 3.9 で個人に戻す。
+> - 新しい Mac では `gh` 自体が未インストール / 未認証のことがある。`brew install gh` → `gh auth login` (ブラウザで対象アカウントにサインインした状態で実行) でセットアップする。
+
 ### 3.7 gh release create で公開
 
 ```bash
@@ -163,6 +169,8 @@ gh release view v0.0.2 --web
 - **Assets セクションに `ArtTracerPackage-0.0.2.dmg` がダウンロード可能になっている**
 
 ### 3.9 gh のアクティブを戻す
+
+> **roundshape が通常状態の Mac ではこのステップは不要**(3.6 の注記を参照)。以下は個人アカウントが普段使いの Mac 向け。
 
 戻し忘れると、別件で「個人で作るつもりが組織側にリポジトリが作られる」等の事故が起こり得る。
 
@@ -205,7 +213,7 @@ $EDITOR "/tmp/release-notes-${VERSION}.md"
 git tag "$TAG"
 git push origin "$TAG"
 
-# (4) gh を roundshape に切り替え
+# (4) gh を roundshape に切り替え（roundshape が通常状態の Mac では不要）
 gh auth switch -u roundshape
 
 # (5) Release 作成
@@ -217,7 +225,7 @@ gh release create "$TAG" \
 # (6) 確認
 gh release view "$TAG" --web
 
-# (7) gh を元に戻す
+# (7) gh を元に戻す（roundshape が通常状態の Mac では不要）
 gh auth switch -u motoi-kasuya773
 gh auth status
 ```
