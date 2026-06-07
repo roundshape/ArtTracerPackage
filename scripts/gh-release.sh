@@ -133,6 +133,32 @@ if [ ! -f "${ASSET_PATH}" ]; then
   exit 1
 fi
 
+# ---- 公証チェック (未公証 dmg のアップロードを防ぐ) -----------------------
+# v0.0.6 で、署名のみ・未公証の dmg をアップロードしてしまい、ダウンロード後に
+# Gatekeeper でブロックされてプラグイン読み込みが失敗した事故があった。
+# scripts/release.sh ではなく公証なしの build-dmg.sh で作った dmg を上げると起こる。
+# ここで staple 済みかを確認し、未公証なら公開前に止める。
+# どうしても未公証で上げたい場合のみ ALLOW_UNNOTARIZED=1 で回避可。
+if [ "${ALLOW_UNNOTARIZED:-0}" != "1" ]; then
+  if ! xcrun stapler validate "${ASSET_PATH}" >/dev/null 2>&1; then
+    echo "ERROR: ${ASSET_PATH} に公証チケットが staple されていません (未公証)。" >&2
+    echo "" >&2
+    echo "このまま公開すると、ダウンロードしたユーザーの環境で Gatekeeper に" >&2
+    echo "ブロックされ、Illustrator のプラグイン読み込みが失敗します。" >&2
+    echo "" >&2
+    echo "公証込みで作り直してください:" >&2
+    echo "    scripts/release.sh ${VERSION}" >&2
+    echo "" >&2
+    echo "(notary プロファイル未設定なら先に:" >&2
+    echo "    xcrun notarytool store-credentials \"notary-profile\" \\" >&2
+    echo "        --apple-id <Apple ID> --team-id 92U95PHRRW --password <App固有PW>)" >&2
+    echo "" >&2
+    echo "意図的に未公証で上げる場合のみ ALLOW_UNNOTARIZED=1 を付けて再実行。" >&2
+    exit 1
+  fi
+  echo "==> 公証チェック OK (staple 済み)"
+fi
+
 # ---- gh アカウント切替 (失敗しても必ず戻す) -------------------------------
 ORIGINAL_ACCOUNT="$(gh api user --jq .login 2>/dev/null || true)"
 if [ -z "${ORIGINAL_ACCOUNT}" ]; then
