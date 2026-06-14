@@ -187,6 +187,48 @@ try {
 
 ---
 
+### `placeArtxSource(xmlSource, x, y [, override])`
+
+`place()` と同じだが、**ファイルパスでなく `.artx` の XML 文字列を直接**渡して
+配置する。テンプレートをファイルに書き出さず、スクリプト内で生成した artx を
+そのままメモリ上で描画できる。
+
+`xmlSource` 以外の引数（`x` / `y` / `override`）と挙動（`setConfig()` 連動・
+`{key}` 流し込み・グループ化・`group: true` 前提の scale/rotate・エラーの扱い）は
+`place()` と完全に同じ。`override` に `{ fields: {...} }` を渡せば XML 内の
+`{key}` に流し込める。
+
+artx の書式は `artx-format.md` を参照（手書き / LLM 生成を前提とした形式）。
+`{key}` を含めて `override.fields` で値を流し込む設計にすると再利用しやすい。
+
+> いつ使うか・テキストの種類の選び方など**作り方の指針**は `artx_cook_book.md`
+> を参照（このファイルは文法のみ）。
+
+#### 例
+
+```javascript
+// 「こんにちはAI Chatです」を 36pt で描く最小の artx をその場で生成して配置
+const xml = `<?xml version="1.0" encoding="UTF-8"?>
+<artx version="1.0.2">
+  <bounds x="0" y="0" w="400" h="60"/>
+  <text x="0" y="44" align="left">
+    <run font="HiraginoSans-W6" fontSize="36">
+      <fill kind="gray" v="1"/>
+      <content>{message}</content>
+    </run>
+  </text>
+</artx>`;
+const b = getArtboards().find(a => a.active);
+placeArtxSource(xml, b.left + 24, b.top - 24, { fields: { message: "こんにちはAI Chatです" } });
+```
+
+#### 失敗するケース
+
+`place()` と同じ（`xmlSource` が文字列でない → `TypeError`、XML パース失敗 /
+`<artx>` ルート無し → `InternalError("placeArtxSource(): load: ...")` など）。
+
+---
+
 ### `loadCsv(path)`
 
 CSV ファイルをその場で読み込み、行オブジェクトの配列を返す。データ駆動
