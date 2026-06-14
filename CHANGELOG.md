@@ -2,6 +2,24 @@
 
 ArtTracer Package (dmg) のリリース履歴です。同梱する `ArtTracer.aip` / `ArtTracerHelper.app` のバージョンは独立しており、各リリース項目に併記します。
 
+## [0.0.8] - 2026-06-14
+
+Illustrator 内で AI に直接デザインを依頼できる **AI チャット機能** を搭載したリリース。
+
+- プラグイン内に **AI チャットパネル** を追加。Illustrator 上で Claude / OpenAI に
+  依頼し、生成された artx をその場で描画できる（外部 LLM にフォーマット仕様を
+  貼り付ける従来ワークフローが不要に）
+  - プロバイダ選択 (Claude / OpenAI)、応答のストリーミング表示、ローカルコマンド
+    (/clear /model /retry /help)、考え中スピナー
+  - read_artx ツールで既存テンプレートを読み込み、AI がカスタマイズして再配置
+- placeArtxSource() を追加: ファイルを介さず XML 文字列から artx を直接描画 (メモリ上)
+- 同梱 ai_docs を整理: JS / artx の **クックブック** (ベストプラクティス) と
+  デザイン4原則 doc を追加し、QuickJS リファレンスを実装に追従
+- README にライセンス条項を明文化 (フリーウェア・商用利用可・無保証)
+
+- ArtTracer.aip 0.0.0 (artx format 1.0.2)
+- ArtTracerHelper.app 0.0.0
+
 ## [0.0.7] - 2026-06-07
 
 v0.0.6 の公証漏れを修正した緊急リリース。機能・コードは v0.0.6 と同一。
