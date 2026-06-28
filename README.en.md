@@ -6,6 +6,8 @@ A **template data-merge plugin** for Adobe Illustrator. Save Illustrator artwork
 
 `.artx` is a human-readable text XML format designed so that AI (LLMs) can generate it directly. This enables a workflow of **"ask ChatGPT / Claude for a design → merge it into Illustrator with ArtTracer."**
 
+> 📖 New here? Check out the **[User Guide (MANUAL.en.md)](MANUAL.en.md)**.
+
 ---
 
 ## Features

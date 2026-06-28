@@ -6,6 +6,8 @@ Adobe Illustrator 用 **テンプレート流し込みプラグイン**。Illust
 
 `.artx` は AI（LLM）が直接生成できるよう設計された人間にも読めるテキスト形式の XML なので、**「ChatGPT / Claude にデザインを依頼 → ArtTracer で Illustrator に流し込む」** というワークフローが成り立ちます。
 
+> 📖 はじめての方は **[使い方ガイド（MANUAL.md）](MANUAL.md)** もどうぞ。
+
 ---
 
 ## できること
