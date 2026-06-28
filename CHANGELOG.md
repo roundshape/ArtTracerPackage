@@ -2,6 +2,27 @@
 
 ArtTracer Package (dmg) のリリース履歴です。同梱する `ArtTracer.aip` / `ArtTracerHelper.app` のバージョンは独立しており、各リリース項目に併記します。
 
+## [0.0.9] - 2026-06-28
+
+AI チャットを「描けるだけ」から「読んで・指して・直せる」まで広げ、
+アピアランスと意味タグ検索に対応したリリース。
+
+- **AI 自己修正**: 配置物に UID を焼き込み、id 指定で後から編集できる
+  ツール群を追加 (getSelection / getAllUids、delete / move / scale /
+  stretch / updateText / replace / updateImage、塗り・線・文字色・
+  アピアランスの setById 系)。AI が自分の結果を見て直せるように
+- **視覚フィードバック (render_view)** と **get_fonts** ツールを追加し、
+  AI がレイアウト結果とフォント情報を踏まえて応答できるように
+- **アピアランス対応**: 塗り/線スタックと不透明度の往復に対応し、
+  artx フォーマットを 1.1.0 に更新
+- **AI 検索用の意味タグ (keywords)** を追加し artx フォーマットを 1.2.0 に更新。
+  保存ダイアログでキーワードを付与でき、AI テンプレ一覧を
+  再帰探索＋keywords付与＋優先順＋件数上限で扱えるように (探索フォルダ設定を追加)
+- 内部バージョニングを導入 (製品版 0.1.0 + ビルド番号を git コミット数で自動焼き込み)
+
+- ArtTracer.aip 0.1.0 (artx format 1.2.0)
+- ArtTracerHelper.app 0.1.0
+
 ## [0.0.8] - 2026-06-14
 
 Illustrator 内で AI に直接デザインを依頼できる **AI チャット機能** を搭載したリリース。
