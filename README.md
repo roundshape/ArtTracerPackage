@@ -1,3 +1,5 @@
+[English](README.en.md) | **日本語**
+
 # ArtTracer
 
 Adobe Illustrator 用 **テンプレート流し込みプラグイン**。Illustrator のアートを `.artx`（テンプレート XML）として保存し、CSV データを差し込むことで複数バリエーションを一気に展開できます。
