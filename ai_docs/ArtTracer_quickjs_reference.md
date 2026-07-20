@@ -735,11 +735,117 @@ boards.forEach((b, i) => {
 ```javascript
 const uids = getAllUids();
 // 例: ["card_1 [group]", "card_text_1 [text] in card_1", "card_path_1 [path] in card_1", ...]
-for (const u of uids) console.log(u);
+for (const u of uids) writeLog(u);   // 結果として読むなら writeLog で出す
 ```
 
 - 戻り値: 文字列配列（UID 名なしの art は含まれない＝手で描いた図形等は出ない）
 - 主に確認・デバッグ用途。配置の id は通常 `place` 直後の `placements:` で受け取る
+
+#### `getBoundsById(id)` — id 指定で bbox を取得（配置後の自己検証）
+
+id（UID 名）で art を解決し、bbox をスナップショットで返す。**配置・移動・拡縮の
+直後に「意図どおりの位置・サイズになったか」を数値で検算する**ための軽量 API。
+`render_view`（画像・重い）に頼る前に、まずこれで安く自己検証する。
+
+```javascript
+place("card.artx", 100, 500, { group: true });
+// placements: card_1 ...
+
+const b1 = getBoundsById("card_1");
+// { left: 100, top: 500, right: 220, bottom: 420, width: 120, height: 80 }
+
+moveById("card_1", 10, 20);
+const b2 = getBoundsById("card_1");
+writeLog("移動量:", b2.left - b1.left, b2.top - b1.top);  // 10 20 → 移動量の検算
+
+getBoundsById("no_such_id");  // → null（例外にならない＝存在確認に使える）
+```
+
+| キー | 型 | 説明 |
+|------|-----|------|
+| `left` / `top` / `right` / `bottom` | number | bbox（AI 座標 Y-up: top > bottom） |
+| `width` / `height` | number | 派生値（width = right - left, height = top - bottom） |
+
+- **id が見つからない → `null`**（例外にしない。`if (!b)` で存在確認できる）
+- ドキュメントが開かれていない / bbox 取得失敗 → `InternalError`
+- 読み取り専用（何も変更しない）。bbox はアピアランス込みの描画境界寄り
+
+---
+
+### `getDocumentTree()` — ドキュメント階層全体を読む（既存ドキュメントの入口）
+
+レイヤ→グループ→アイテムの**階層全体**をネストしたスナップショットで返す。
+コーディングでいう `ls -R` + `cat` に相当し、**ユーザーが手で作った既存ドキュメント**
+を編集する仕事はまずこれを呼んで全体像を把握するところから始める。
+
+```javascript
+const tree = getDocumentTree();
+// {
+//   layers: [
+//     { name: "レイヤー 1", visible: true, locked: false, current: true,
+//       items: [
+//         { kind: "text", bbox: {...}, text: "見出しテキスト" },
+//         { kind: "group", clip: true, bbox: {...}, children: [
+//             { kind: "path", closed: true, clipMask: true, bbox: {...} },
+//             { kind: "image", bbox: {...} } ] },
+//         { kind: "path", id: "card_path_1", closed: true, bbox: {...} }
+//       ] }
+//   ]
+// }
+```
+
+レイヤは `getLayers()` と同じキー（`name` / `visible` / `locked` / `current`）+
+`items`。テンプレートレイヤのみ `template: true` が付く。
+
+ノード（items / children の要素）のキー。**該当時のみ出るキーが多い** — 無いキーは
+「false / 値なし」を意味する:
+
+| キー | 出る条件 | 説明 |
+|------|---------|------|
+| `kind` | 常に | `"group"` / `"path"` / `"compound"` / `"text"` / `"image"` / `"symbol"` / `"other"` |
+| `id` | UID 名を持つ art のみ | `moveById` 等にそのまま渡せる。**読むだけで付与はしない** |
+| `name` | 非デフォルト名のみ | サブレイヤー名・ユーザー命名（id と同じなら省略） |
+| `bbox` | 取得できたとき | `{ left, top, right, bottom, width, height }`（AI 座標 Y-up） |
+| `text` | text のみ | 可視テキスト。**先頭 200 文字（UTF-16 単位）で打ち切り**、切れたら `textTruncated: true` |
+| `closed` | path のみ | 閉じているか |
+| `hidden` / `locked` | true のときのみ | アイテム単位の隠し / ロック |
+| `clip` | クリップグループのみ | このグループはクリッピングマスクを持つ |
+| `clipMask` | マスクの art のみ | **描画物ではなく「窓」**（見た目の範囲を定義する形状） |
+| `sublayer` | サブレイヤーのみ | サブレイヤーは階層上 group として現れる（`name` にサブレイヤー名） |
+| `children` | group / compound のみ | 子ノード配列。**index 0 = 最前面**（items も同じ） |
+| `truncated` | ルートに、打ち切り時のみ | 2000 ノード / 深さ 32 の上限で打ち切った |
+
+- **読み取り専用・副作用ゼロ**（UID を焼かない。実行後に ⌘Z しても何も起きない）
+- `id` の無いアイテムを編集したいときは、**ユーザーに選択してもらい `getSelection()`
+  で id を得る**（getSelection は選択 art に id を付与する）
+- 隠しレイヤ / ロックレイヤの中身も列挙される（読むのが目的のため除外しない）
+- ドキュメント未オープンのみ `InternalError`
+
+> **出力は必ず `writeLog` で**: 実行結果として返るのは `writeLog` の行だけ
+> （`console.log` は画面ステータス用で結果には入らない）。読んだデータを
+> 次の判断に使うなら `writeLog` で出すこと。また、大きいドキュメントで
+> `JSON.stringify(tree)` を丸ごと出さない（トークンを浪費する）。
+> 歩いて要約するのが基本形:
+
+```javascript
+// ツリーを 1 行 1 ノードのインデント付きテキストに要約して writeLog する
+function walk(items, ind) {
+    for (const it of items) {
+        let s = ind + it.kind + (it.id ? "#" + it.id : "")
+              + (it.name ? ` "${it.name}"` : "")
+              + (it.clip ? " [clip]" : "") + (it.clipMask ? " [mask]" : "")
+              + (it.hidden ? " [hidden]" : "") + (it.locked ? " [locked]" : "");
+        if (it.bbox) s += ` (${it.bbox.width.toFixed(0)}x${it.bbox.height.toFixed(0)})`;
+        if (it.text !== undefined) s += ` "${it.text.slice(0, 20)}"`;
+        writeLog(s);
+        if (it.children) walk(it.children, ind + "  ");
+    }
+}
+for (const l of getDocumentTree().layers) {
+    writeLog(`[layer] ${l.name}${l.visible ? "" : " (hidden)"}`);
+    walk(l.items, "  ");
+}
+```
 
 ---
 
@@ -825,7 +931,7 @@ const sel = getSelection();
 | キー | 型 | 説明 |
 |------|-----|------|
 | `id` | string | UID 名。`updateTextById` 等にそのまま渡す。既存 id があれば再利用、無ければ `sel_<kind>_<連番>`（例 `sel_path_1`）を付与（place の `card_text_1` と同じ作法） |
-| `kind` | string | `"text"` / `"path"` / `"group"` / `"compound"` / `"image"` / `"other"` |
+| `kind` | string | `"text"` / `"path"` / `"group"` / `"compound"` / `"image"` / `"symbol"` / `"other"` |
 | `closed` | boolean | `path` のとき閉じているか（**枠**判定の手がかり。閉じパス＝枠候補） |
 | `bbox` | object | `{ left, top, right, bottom, width, height }`（AI 座標 Y-up: top > bottom） |
 | `zOrder` | number | 親内の重ね順（**0 = 最前面**、大きいほど背面 = 枠候補） |
@@ -1111,8 +1217,13 @@ console.log("data:", JSON.stringify(obj));
 ### `writeLog(...args)`
 
 `console.log` と同じく引数を空白区切りで連結するが、出力先が違う。**全行が
-ファイルに残る**ので、データ確認やデバッグの記録に使う。`console.log` は画面
-（ステータス欄の最後の 1 行）専用、`writeLog` はファイル専用、と役割を分けている。
+実行結果として残る**ので、データ確認やデバッグの記録に使う。`console.log` は画面
+（ステータス欄の最後の 1 行）専用、`writeLog` は結果専用、と役割を分けている。
+
+> **AI チャット (run_script) ではここが唯一の読み取りチャネル**: 実行結果として
+> AI に返る output は `writeLog` の全行（+ エラーログ + placements）だけ。
+> `getDocumentTree` / `getBoundsById` 等で読んだデータを AI 自身が受け取るには、
+> 必ず `writeLog` で出力すること（`console.log` は AI には届かない）。
 
 #### 引数
 
@@ -1207,15 +1318,18 @@ console.log(`配置完了: ${cols * rows} 個`);
 ## 今後の拡張余地（未実装）
 
 当初挙げていた候補（`loadJson` / Undo 境界 / `rotate`）はすべて実装済み。
-読み取り系も `getDocumentInfo` / `getLayers` / `getArtboards` / `getArtxInfo` /
-`getAllUids` まで実装済み。自己修正系は `deleteById` / `moveById` / `scaleById` /
-`stretchById` / `updateTextById` / `updateImageById` / `replaceById` まで実装済み。
+読み取り系は `getDocumentInfo` / `getLayers` / `getArtboards` / `getArtxInfo` /
+`getAllUids` / `getSelectedPaths` / `getSelection` / `getBoundsById` /
+`getDocumentTree` まで実装済み。自己修正系は `deleteById` / `moveById` /
+`scaleById` / `stretchById` / `updateTextById` / `updateImageById` /
+`replaceById` / `setFillById` / `setStrokeById` / `setAppearanceById` /
+`setTextColorById` まで実装済み。
 
-次の候補（自動配置の JS 化に向けて）:
+次の候補:
 
-- `getSelectedPaths()` — 選択中の closed path の形状（頂点列・bbox）。
-  これが揃うと grid 計算・footprint 包含テストが JS で書ける（Free Packing /
-  領域分割の JS 移植の前提インフラ）
+- デザイン lint 系ヘルパ — bbox ベースの重なり / アートボードはみ出し検出
+  （`getBoundsById` / `getDocumentTree` の上に薄く載る自己検証の定型）
+- `packIntoRegion` — 既存 C++ 自動配置（非矩形 / footprint 詰め込み）の JS 公開
 
 新しい関数・設定キーは要件が固まった段階で `JsRuntime` に登録する関数 /
 `JsPlaceConfig` のキーとして足していく。

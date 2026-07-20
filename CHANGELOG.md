@@ -2,6 +2,25 @@
 
 ArtTracer Package (dmg) のリリース履歴です。同梱する `ArtTracer.aip` / `ArtTracerHelper.app` のバージョンは独立しており、各リリース項目に併記します。
 
+## [0.2.0] - 2026-07-20
+
+AI が既存ドキュメントを「読める」ようになり、参考画像を見せられるようになったリリース。
+
+- **読む力の強化 (JS read API)**:
+  - `getDocumentTree()` — レイヤ→グループ→アイテムの階層全体を kind/id/bbox/
+    テキスト/クリップ・非表示・ロック情報付きのツリーで返す「既存ドキュメントを
+    読む入口」。読み取り専用で Undo 履歴を汚さない
+  - `getBoundsById(id)` — id 指定で bbox を取得。配置・移動・拡縮の結果を
+    数値で自己検証できる (render_view より軽い検算手段)
+- **AI チャットに画像添付**: ウィンドウへのドラッグ&ドロップ / 📎 ボタンで
+  参考画像を添付できるように (最大 3 枚、長辺 1568px に自動縮小)。参考画像は
+  会話中保持されるため、render_view の結果と見比べながらの再現デザインが可能に
+- kind 判定に symbol を追加 (getSelection / getAllUids / getDocumentTree で
+  シンボルが "symbol" として区別される)
+
+- ArtTracer.aip 0.2.10 (artx format 1.2.0)
+- ArtTracerHelper.app 0.1.0
+
 ## [0.1.0] - 2026-07-05
 
 UI を英語対応し、AI が選択物を「拡大して見る」目を手に入れたリリース。
