@@ -9,7 +9,7 @@ set -euo pipefail
 #   scripts/build-dmg.sh [VERSION]
 #
 # 環境変数で .aip / .app / ライセンスファイルの場所を上書き可能：
-#   AIP_PATH      ArtTracer.aip            (default: ../output/mac/release/ArtTracer.aip)
+#   AIP_PATH      ArtTracer.aip            (default: ../output/mac/ai2026/release/ArtTracer.aip)
 #   APP_PATH      ArtTracerHelper.app      (default: ../ArtTracer/Helper/build.noindex/Release/ArtTracerHelper.app)
 #   LICENSE_PATH  THIRD_PARTY_LICENSES.md  (default: ../ArtTracer/THIRD_PARTY_LICENSES.md)
 #
@@ -24,7 +24,7 @@ cd "$ROOT"
 
 VERSION="${1:-0.0.0}"
 
-AIP_PATH="${AIP_PATH:-../output/mac/release/ArtTracer.aip}"
+AIP_PATH="${AIP_PATH:-../output/mac/ai2026/release/ArtTracer.aip}"
 APP_PATH="${APP_PATH:-../ArtTracer/Helper/build.noindex/Release/ArtTracerHelper.app}"
 LICENSE_PATH="${LICENSE_PATH:-../ArtTracer/THIRD_PARTY_LICENSES.md}"
 

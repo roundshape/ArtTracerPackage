@@ -19,7 +19,7 @@ set -euo pipefail
 #   TEAM_ID         Team ID                   (default: 92U95PHRRW)
 #
 # 出力:
-#   ../output/mac/release/ArtTracer.aip
+#   ../output/mac/ai2026/release/ArtTracer.aip
 #   ../ArtTracer/Helper/build.noindex/Release/ArtTracerHelper.app
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
@@ -41,7 +41,7 @@ if [[ ! -e "$HELPER_PROJECT" ]]; then
     exit 1
 fi
 
-AIP_OUTPUT_DIR="../output/mac/release"
+AIP_OUTPUT_DIR="../output/mac/ai2026/release"
 HELPER_OUTPUT_DIR="../ArtTracer/Helper/build.noindex/Release"
 
 echo "==> Cleaning $AIP_OUTPUT_DIR"
