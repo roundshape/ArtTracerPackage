@@ -3,7 +3,7 @@
 ## 必要環境
 
 - macOS 12 以降
-- Adobe Illustrator 2022 以降
+- Adobe Illustrator 2026
 
 ## 手順
 

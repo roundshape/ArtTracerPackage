@@ -84,7 +84,7 @@ Copy the bundled **`ArtTracerHelper.app`** to `/Applications`, and `.artx` files
 
 ## Installation
 
-**Supported platform**: macOS only (Adobe Illustrator 2022 or later). A Windows version is not currently provided.
+**Supported platform**: macOS only (Adobe Illustrator 2026). A Windows version is not currently provided.
 
 See **`Install Guide.md`** inside the dmg.
 

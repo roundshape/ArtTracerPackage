@@ -84,7 +84,7 @@ Illustrator で作成したアートを `.artx` 形式で保存。後から同�
 
 ## インストール
 
-**対応プラットフォーム**: macOS のみ（Adobe Illustrator 2022 以降）。Windows 版は現時点で未提供です。
+**対応プラットフォーム**: macOS のみ（Adobe Illustrator 2026）。Windows 版は現時点で未提供です。
 
 dmg 内の **`Install Guide.md`** を参照してください。
 
