@@ -15,7 +15,7 @@ set -euo pipefail
 # 環境変数で上書き可能：
 #   AIP_PROJECT     ArtTracer.xcodeproj       (default: ../ArtTracer/ArtTracer.xcodeproj)
 #   HELPER_PROJECT  ArtTracerHelper.xcodeproj (default: ../ArtTracer/Helper/ArtTracerHelper.xcodeproj)
-#   SIGN_ID         署名 ID                   (default: Developer ID Application: Motoi Kasuya (92U95PHRRW))
+#   SIGN_ID         署名 ID                   (default: Developer ID Application: ROUND SHAPE K.K. (92U95PHRRW))
 #   TEAM_ID         Team ID                   (default: 92U95PHRRW)
 #
 # 出力:
@@ -27,7 +27,7 @@ cd "$ROOT"
 
 AIP_PROJECT="${AIP_PROJECT:-../ArtTracer/ArtTracer.xcodeproj}"
 HELPER_PROJECT="${HELPER_PROJECT:-../ArtTracer/Helper/ArtTracerHelper.xcodeproj}"
-SIGN_ID="${SIGN_ID:-Developer ID Application: Motoi Kasuya (92U95PHRRW)}"
+SIGN_ID="${SIGN_ID:-Developer ID Application: ROUND SHAPE K.K. (92U95PHRRW)}"
 TEAM_ID="${TEAM_ID:-92U95PHRRW}"
 
 if [[ ! -e "$AIP_PROJECT" ]]; then

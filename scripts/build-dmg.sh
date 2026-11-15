@@ -14,7 +14,7 @@ set -euo pipefail
 #   LICENSE_PATH  THIRD_PARTY_LICENSES.md  (default: ../ArtTracer/THIRD_PARTY_LICENSES.md)
 #
 # NOTARIZE=1 を指定すると dmg の署名・公証・staple まで行う：
-#   SIGN_ID         署名 ID         (default: Developer ID Application: Motoi Kasuya (92U95PHRRW))
+#   SIGN_ID         署名 ID         (default: Developer ID Application: ROUND SHAPE K.K. (92U95PHRRW))
 #   NOTARY_PROFILE  notarytool プロファイル (default: notary-profile)
 #
 # 出力: dist/ArtTracerPackage-<VERSION>.dmg
@@ -73,7 +73,7 @@ hdiutil create \
     >/dev/null
 
 if [[ "${NOTARIZE:-}" == "1" ]]; then
-    SIGN_ID="${SIGN_ID:-Developer ID Application: Motoi Kasuya (92U95PHRRW)}"
+    SIGN_ID="${SIGN_ID:-Developer ID Application: ROUND SHAPE K.K. (92U95PHRRW)}"
     NOTARY_PROFILE="${NOTARY_PROFILE:-notary-profile}"
 
     echo "==> Signing $DMG_NAME"

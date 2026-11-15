@@ -63,7 +63,7 @@ Xcode プロジェクトをビルドし、配布対象の成果物 2 つを生�
 |---|---|---|
 | `AIP_PROJECT` | `../ArtTracer/ArtTracer.xcodeproj` | ArtTracer プロジェクトのパス |
 | `HELPER_PROJECT` | `../ArtTracer/Helper/ArtTracerHelper.xcodeproj` | Helper プロジェクトのパス |
-| `SIGN_ID` | `Developer ID Application: Motoi Kasuya (92U95PHRRW)` | 署名 ID |
+| `SIGN_ID` | `Developer ID Application: ROUND SHAPE K.K. (92U95PHRRW)` | 署名 ID |
 | `TEAM_ID` | `92U95PHRRW` | Team ID |
 
 #### xcodebuild に渡している主要な設定
@@ -120,7 +120,7 @@ NOTARIZE=1 scripts/build-dmg.sh [VERSION]
 | `AIP_PATH` | `../output/mac/release/ArtTracer.aip` | dmg に入れる .aip のパス |
 | `APP_PATH` | `../ArtTracer/Helper/build.noindex/Release/ArtTracerHelper.app` | dmg に入れる .app のパス |
 | `NOTARIZE` | （未設定） | `1` を指定すると署名・公証・staple を実行 |
-| `SIGN_ID` | `Developer ID Application: Motoi Kasuya (92U95PHRRW)` | dmg の署名 ID（`NOTARIZE=1` 時のみ使用） |
+| `SIGN_ID` | `Developer ID Application: ROUND SHAPE K.K. (92U95PHRRW)` | dmg の署名 ID（`NOTARIZE=1` 時のみ使用） |
 | `NOTARY_PROFILE` | `notary-profile` | notarytool キーチェーンプロファイル名（同上） |
 
 #### バージョン番号について
